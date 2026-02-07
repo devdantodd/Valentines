@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For Sheila ❤️</title>
+
+<style>
+:root{
+  --deep-red:#b91c1c;
+  --pink:#ff4d8d;
+}
+
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  overflow:hidden;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:var(--deep-red);
+  transition:background 1s ease;
+  text-align:center;
+  color:white;
+}
+
+.container{width:90%;max-width:500px;}
+.hidden{display:none;}
+
+button{
+  padding:18px 35px;
+  font-size:1.2rem;
+  border:none;
+  border-radius:50px;
+  margin:10px;
+  cursor:pointer;
+  transition:.3s ease;
+}
+
+#yesBtn{background:white;color:var(--deep-red);font-weight:bold;}
+#noBtn{background:rgba(255,255,255,.6);color:white;}
+
+.sky{
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle at top,#ff99c8,#ff0a54);
+  overflow:hidden;
+}
+
+/* Map */
+#mapCanvas{
+  position:absolute;
+  inset:0;
+}
+
+#plane{
+  position:absolute;
+  font-size:40px;
+  transform:translate(-50%,-50%);
+  transition:transform .2s;
+  z-index:10;
+}
+
+.flag{
+  position:absolute;
+  font-size:45px;
+  transform:translate(-50%,-50%);
+  filter:drop-shadow(0 0 10px white);
+  z-index:5;
+}
+
+/* Floating Emojis */
+.emoji{
+  position:absolute;
+  animation:floatUp linear forwards;
+  z-index:1;
+}
+
+@keyframes floatUp{
+  0%{transform:translateY(100vh);opacity:1;}
+  100%{transform:translateY(-20vh);opacity:0;}
+}
+
+/* Letter Page */
+#letterPage{
+  position:fixed;
+  inset:0;
+  background:black;
+  overflow:hidden;
+}
+
+.star{
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  border-radius:50%;
+  animation:twinkle 2s infinite ease-in-out;
+}
+
+@keyframes twinkle{
+  0%,100%{opacity:.2;}
+  50%{opacity:1;}
+}
+
+#letterBox{
+  position:relative;
+  margin:100px auto;
+  background:rgba(255,255,255,.1);
+  backdrop-filter:blur(4px);
+  color:white;
+  padding:30px;
+  border-radius:20px;
+  max-width:600px;
+  max-height:70vh;
+  overflow-y:auto;
+  white-space:pre-wrap;
+  text-align:left;
+  box-shadow:0 0 20px rgba(255,255,255,.3);
+  font-size:1.1rem;
+  line-height:1.8;
+}
+
+/* Confetti */
+#confetti{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:9999;
+}
+</style>
+</head>
+
+<body>
+
+<!-- YouTube Hidden -->
+<div style="position:fixed;top:-1000px;">
+<iframe id="yt" width="0" height="0" allow="autoplay"></iframe>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<div id="page1" class="container">
+<h1>Sheila, will you be my Valentine? 🌹</h1>
+<button id="yesBtn">Yes</button>
+<button id="noBtn">No</button>
+</div>
+
+<div id="page2" class="sky hidden">
+<canvas id="mapCanvas"></canvas>
+<div id="plane">✈️</div>
+<div id="usa" class="flag">📍</div>
+<div id="ph" class="flag">💖</div>
+
+<h2 style="position:absolute;top:40px;width:100%;z-index:20;">
+From America 📍 to the Philippines 💖
+</h2>
+
+<div style="position:absolute;bottom:80px;width:100%;z-index:20;">
+<button id="openLetter" style="background:white;color:var(--pink);font-weight:bold;">Open My Letter 💌</button>
+</div>
+</div>
+
+<div id="letterPage" class="hidden">
+<div id="letterBox"></div>
+</div>
+
+<script>
+const YOUTUBE_VIDEO_ID="dQw4w9WgXcQ"; // Replace with your video ID
+
+/* Elements */
+const yesBtn=document.getElementById("yesBtn");
+const noBtn=document.getElementById("noBtn");
+const page1=document.getElementById("page1");
+const page2=document.getElementById("page2");
+const letterPage=document.getElementById("letterPage");
+const openLetter=document.getElementById("openLetter");
+const yt=document.getElementById("yt");
+
+const confettiCanvas=document.getElementById("confetti");
+const ctx=confettiCanvas.getContext("2d");
+
+const mapCanvas=document.getElementById("mapCanvas");
+const mapCtx=mapCanvas.getContext("2d");
+
+const plane=document.getElementById("plane");
+const usa=document.getElementById("usa");
+const ph=document.getElementById("ph");
+
+/* Resize */
+function resize(){
+  confettiCanvas.width=innerWidth;
+  confettiCanvas.height=innerHeight;
+  mapCanvas.width=innerWidth;
+  mapCanvas.height=innerHeight;
+}
+resize();
+window.onresize=resize;
+
+/* NO Shrink */
+let clicks=0;
+noBtn.onclick=()=>{
+  clicks++;
+  let scale=Math.max(1-clicks*.15,.3);
+  noBtn.style.transform=`scale(${scale})`;
+  yesBtn.style.transform=`scale(${1+clicks*.1})`;
+};
+
+/* CONFETTI */
+let pieces=[];
+let confettiAnimating=false;
+
+function explode(x,y){
+  for(let i=0;i<300;i++){
+    pieces.push({
+      x,y,
+      size:Math.random()*8+4,
+      speedX:(Math.random()-.5)*15,
+      speedY:(Math.random()-.5)*15-5,
+      gravity:.3,
+      rotation:Math.random()*360,
+      rotationSpeed:(Math.random()-.5)*10,
+      color:`hsl(${Math.random()*360},100%,${Math.random()*20+50}%)`
+    });
+  }
+  if(!confettiAnimating){
+    confettiAnimating=true;
+    animateConfetti();
+  }
+}
+
+function animateConfetti(){
+  ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+  
+  pieces.forEach((p,i)=>{
+    p.speedY+=p.gravity;
+    p.x+=p.speedX;
+    p.y+=p.speedY;
+    p.rotation+=p.rotationSpeed;
+    
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.rotation*Math.PI/180);
+    ctx.fillStyle=p.color;
+    ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+    ctx.restore();
+    
+    if(p.y>confettiCanvas.height+50){
+      pieces.splice(i,1);
+    }
+  });
+  
+  if(pieces.length>0){
+    requestAnimationFrame(animateConfetti);
+  }else{
+    confettiAnimating=false;
+  }
+}
+
+/* YES */
+yesBtn.onclick=()=>{
+  // Start music
+  yt.src=`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}&controls=0`;
+  
+  // Trigger confetti explosion at button location
+  const r=yesBtn.getBoundingClientRect();
+  explode(r.left+r.width/2,r.top+r.height/2);
+  
+  // Wait a moment before transitioning
+  setTimeout(()=>{
+    startPage2();
+  },800);
+};
+
+/* PAGE 2 */
+function startPage2(){
+  page1.classList.add("hidden");
+  page2.classList.remove("hidden");
+  document.body.style.background="var(--pink)";
+  
+  // Wait for page to render before starting flight
+  setTimeout(()=>{
+    startFlight();
+  },100);
+  
+  setInterval(createEmoji,300);
+}
+
+/* EMOJIS */
+function createEmoji(){
+  const list=["❤️","💖","💕","🌹","💝","💗","🙏🏼"];
+  const el=document.createElement("div");
+  el.className="emoji";
+  el.textContent=list[Math.floor(Math.random()*list.length)];
+  el.style.left=Math.random()*90+"vw";
+  el.style.fontSize=(Math.random()*25+25)+"px";
+  el.style.animationDuration=(Math.random()*3+4)+"s";
+  page2.appendChild(el);
+  setTimeout(()=>el.remove(),7000);
+}
+
+/* FLIGHT */
+function startFlight(){
+  // Calculate positions based on actual canvas size
+  const w=mapCanvas.width;
+  const h=mapCanvas.height;
+  
+  const start={x:w*0.15,y:h*0.65};
+  const end={x:w*0.85,y:h*0.55};
+  const control={x:w/2,y:h*0.15};
+
+  // Position flags
+  usa.style.left=start.x+"px";
+  usa.style.top=start.y+"px";
+  ph.style.left=end.x+"px";
+  ph.style.top=end.y+"px";
+
+  let t=0;
+
+  function animate(){
+    mapCtx.clearRect(0,0,mapCanvas.width,mapCanvas.height);
+
+    // Draw path
+    mapCtx.beginPath();
+    mapCtx.moveTo(start.x,start.y);
+    mapCtx.quadraticCurveTo(control.x,control.y,end.x,end.y);
+    mapCtx.strokeStyle="rgba(255,255,255,0.5)";
+    mapCtx.lineWidth=3;
+    mapCtx.setLineDash([10,8]);
+    mapCtx.stroke();
+
+    // Calculate plane position
+    const x=(1-t)*(1-t)*start.x+2*(1-t)*t*control.x+t*t*end.x;
+    const y=(1-t)*(1-t)*start.y+2*(1-t)*t*control.y+t*t*end.y;
+
+    plane.style.left=x+"px";
+    plane.style.top=y+"px";
+
+    // Calculate rotation
+    const dx=2*(1-t)*(control.x-start.x)+2*t*(end.x-control.x);
+    const dy=2*(1-t)*(control.y-start.y)+2*t*(end.y-control.y);
+    const angle=Math.atan2(dy,dx)*180/Math.PI;
+    plane.style.transform=`translate(-50%,-50%) rotate(${angle}deg)`;
+
+    t+=0.0025;
+    if(t<=1){
+      requestAnimationFrame(animate);
+    }else{
+      // Confetti at destination
+      explode(end.x,end.y);
+    }
+  }
+  animate();
+}
+
+/* LETTER PAGE */
+const message=`My Dearest Sheila, you don't know how much you mean to me`;
+
+openLetter.onclick=()=>{
+  page2.classList.add("hidden");
+  letterPage.classList.remove("hidden");
+  createStars();
+  typeWriter(message);
+};
+
+/* STAR FIELD */
+function createStars(){
+  for(let i=0;i<200;i++){
+    const s=document.createElement("div");
+    s.className="star";
+    s.style.left=Math.random()*100+"vw";
+    s.style.top=Math.random()*100+"vh";
+    s.style.animationDelay=Math.random()*2+"s";
+    s.style.animationDuration=(Math.random()*3+2)+"s";
+    letterPage.appendChild(s);
+  }
+}
+
+/* TYPE */
+function typeWriter(text){
+  const box=document.getElementById("letterBox");
+  box.textContent="";
+  let i=0;
+  function type(){
+    if(i<text.length){
+      box.textContent+=text[i];
+      i++;
+      setTimeout(type,50);
+    }
+  }
+  type();
+}
+</script>
+
+</body>
+</html>
